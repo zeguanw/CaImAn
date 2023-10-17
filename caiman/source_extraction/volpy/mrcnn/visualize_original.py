@@ -123,7 +123,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     #image_path = '/home/nel/Code/VolPy/Mask_RCNN/backup/inference.npz'
     #image1 = np.load(image_path)['arr_0']
     #ax.imshow(image1, cmap='gray', vmax=np.percentile(image1,98))
-    ax.imshow(image[:,:,0], cmap='gray',vmax=np.percentile(image,99)*1.2)
+    ax.imshow(image[:,:,0], cmap='gray',vmax=np.percentile(image,99))
         
     masked_image = np.zeros(image.copy().shape)#.astype(np.uint32).copy()
     
@@ -136,11 +136,11 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             # Skip this instance. Has no bbox. Likely lost in image cropping.
             continue
         y1, x1, y2, x2 = boxes[i]
-        #if show_bbox:
-           # p = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=1,
-           #                     alpha=1, linestyle=":",
-           #                     edgecolor=color, facecolor='none')
-           # ax.add_patch(p)
+        if show_bbox:
+            p = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=1,
+                                alpha=1, linestyle=":",
+                                edgecolor=color, facecolor='none')
+            ax.add_patch(p)
 
         # Label
         if not captions:
@@ -148,12 +148,11 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             score = scores[i] if scores is not None else None
             label = class_names[class_id]
             #caption = "{} {:.3f}".format(label, score) if score else label
-            #caption = "{:.2f}".format(score) if score else label
-            caption = i + 1 #changed so that index always start at 1
+            caption = "{:.2f}".format(score) if score else label
         else:
-            caption = captions[i]  
+            caption = captions[i]
         ax.text(x1+6, y1 + 12, caption, alpha=1,
-                color='r', size=5, backgroundcolor="none")
+                color='r', size=10, backgroundcolor="none")
 
         # Mask
         mask = masks[:, :, i]
@@ -182,110 +181,6 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     #plt.savefig('/home/nel/Code/VolPy/Mask_RCNN/results/inference_fish1_2.pdf')
     if auto_show:
         plt.show()
-
-
-def display_instances_no_contour(image, boxes, masks, class_ids, class_names,
-                      scores=None, title="",
-                      figsize=(16, 16), ax=None,
-                      show_mask=True,show_bbox=True,
-                      colors=None, captions=None):
-    """
-    boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
-    masks: [height, width, num_instances]
-    class_ids: [num_instances]
-    class_names: list of class names of the dataset
-    scores: (optional) confidence scores for each box
-    title: (optional) Figure title
-    show_mask, show_bbox: To show masks and bounding boxes or not
-    figsize: (optional) the size of the image
-    colors: (optional) An array or colors to use with each object
-    captions: (optional) A list of strings to use as captions for each object
-    """
-    # Number of instances
-    N = boxes.shape[0]
-    if not N:
-        print("\n*** No instances to display *** \n")
-    else:
-        assert boxes.shape[0] == masks.shape[-1] == class_ids.shape[0]
-
-    # If no axis is passed, create one and automatically call show()
-    auto_show = False
-    if not ax:
-        _, ax = plt.subplots(1, figsize=figsize)
-        auto_show = True
-
-    # Generate random colors
-    colors = colors or random_colors(N)
-
-    # Show area outside image boundaries.
-    height, width = image.shape[:2]
-    ax.set_ylim(height + 10, -10)
-    ax.set_xlim(-10, width + 10)
-    ax.axis('off')
-    ax.set_title(title)
-    #image_path = '/home/nel/Code/VolPy/Mask_RCNN/backup/inference.npz'
-    #image1 = np.load(image_path)['arr_0']
-    #ax.imshow(image1, cmap='gray', vmax=np.percentile(image1,98))
-    ax.imshow(image[:,:,0], cmap='gray',vmax=np.percentile(image,99)*1.2)
-        
-    masked_image = np.zeros(image.copy().shape)#.astype(np.uint32).copy()
-    
-    
-    for i in range(N):
-        color = colors[i]
-
-        # Bounding box
-        if not np.any(boxes[i]):
-            # Skip this instance. Has no bbox. Likely lost in image cropping.
-            continue
-        y1, x1, y2, x2 = boxes[i]
-        #if show_bbox:
-           # p = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=1,
-           #                     alpha=1, linestyle=":",
-           #                     edgecolor=color, facecolor='none')
-           # ax.add_patch(p)
-
-        # Label
-        if not captions:
-            class_id = class_ids[i]
-            score = scores[i] if scores is not None else None
-            label = class_names[class_id]
-            #caption = "{} {:.3f}".format(label, score) if score else label
-            #caption = "{:.2f}".format(score) if score else label
-            caption = i + 1 #changed!! so the index start from 1
-        else:
-            caption = captions[i]
-        ax.text(x1+6, y1 + 12, caption, alpha=1,
-                color='r', size=2, backgroundcolor="none")
-
-        # # Mask
-        # mask = masks[:, :, i]
-        # if show_mask:
-        #     masked_image = apply_mask(masked_image, mask, color)
-        
-        # # Mask Polygon
-        # # Pad to ensure proper polygons for masks that touch image edges.
-        
-        # padded_mask = np.zeros(
-        #     (mask.shape[0] + 2, mask.shape[1] + 2), dtype=np.uint8)
-        # padded_mask[1:-1, 1:-1] = mask
-        # contours = find_contours(padded_mask, 0.5)
-        # for verts in contours:
-        #     # Subtract the padding and flip (y, x) to (x, y)
-        #     verts = np.fliplr(verts) - 1
-        #     p = Polygon(verts, facecolor="none", edgecolor=color)
-        #     ax.add_patch(p)
-        
-    #ax.imshow(masked_image[:,:,0],cmap='Greys')
-    
-    #ax.imshow(image[:,:,0])#.astype(np.uint8)
-    #import matplotlib
-    #print(matplotlib.rcParams['ps.fonttype'])
-    #print(matplotlib.rcParams['pdf.fonttype'])
-    #plt.savefig('/home/nel/Code/VolPy/Mask_RCNN/results/inference_fish1_2.pdf')
-    if auto_show:
-        plt.show()
-
 
 
 def display_differences(image,

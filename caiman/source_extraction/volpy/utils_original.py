@@ -14,8 +14,6 @@ import tensorflow as tf
 import caiman as cm
 from caiman.external.cell_magic_wand import cell_magic_wand_single_point
 from caiman.paths import caiman_datadir
-from matplotlib.pyplot import savefig
-
 
 def quick_annotation(img, min_radius, max_radius, roughness=2):
     """ Quick annotation method in VolPy using cell magic wand plugin
@@ -91,7 +89,7 @@ def quick_annotation(img, min_radius, max_radius, roughness=2):
 
     return ROIs
 
-def mrcnn_inference(img, size_range, weights_path, savedir, savename, display_result=True):
+def mrcnn_inference(img, size_range, weights_path, display_result=True):
     """ Mask R-CNN inference in VolPy
     Args: 
         img: 2-D array
@@ -118,13 +116,11 @@ def mrcnn_inference(img, size_range, weights_path, savedir, savename, display_re
         # Run detection on one img at a time
         GPU_COUNT = 1
         IMAGES_PER_GPU = 1
-        DETECTION_MIN_CONFIDENCE = 0
+        DETECTION_MIN_CONFIDENCE = 0.7
         IMAGE_RESIZE_MODE = "pad64"
         IMAGE_MAX_DIM = 512
-        RPN_NMS_THRESHOLD = 0.9
+        RPN_NMS_THRESHOLD = 0.7
         POST_NMS_ROIS_INFERENCE = 1000
-        DETECTION_MAX_INSTANCES = 4000
-        
     config = InferenceConfig()
     config.display()
     model_dir = os.path.join(caiman_datadir(), 'model')
@@ -147,9 +143,7 @@ def mrcnn_inference(img, size_range, weights_path, savedir, savename, display_re
         _, ax = plt.subplots(1,1, figsize=(16,16))
         visualize.display_instances(img, r['rois'], r['masks'], r['class_ids'], 
                                 ['BG', 'neurons'], r['scores'], ax=ax,
-                                title="Predictions")
-        savefig(savedir + '/auto/outline/' + savename + '_roi.pdf', bbox_inches='tight')
-        
+                                title="Predictions")        
     return ROIs
 
 def reconstructed_movie(estimates, fnames, idx, scope, flip_signal):
@@ -252,21 +246,18 @@ def view_components(estimates, img, idx, frame_times=None, gt_times=None):
             
             ax2.cla()
             ax2.plot(frame_times, estimates['t'][idx][i], alpha=0.8)
-            #ax2.plot(frame_times, estimates['t_sub'][idx][i])            
-            #ax2.plot(frame_times, estimates['t_rec'][idx][i], alpha = 0.4, color='red')
-            #ax2.plot(frame_times[estimates['spikes'][idx[i]]],
-            #         1.05 * np.max(estimates['t'][idx][i]) * np.ones(estimates['spikes'][idx[i]].shape),
-            #         color='r', marker='.', fillstyle='none', linestyle='none')
+            ax2.plot(frame_times, estimates['t_sub'][idx][i])            
+            ax2.plot(frame_times, estimates['t_rec'][idx][i], alpha = 0.4, color='red')
+            ax2.plot(frame_times[estimates['spikes'][idx[i]]],
+                     1.05 * np.max(estimates['t'][idx][i]) * np.ones(estimates['spikes'][idx[i]].shape),
+                     color='r', marker='.', fillstyle='none', linestyle='none')
             if gt_times is not None:
                 ax2.plot(gt_times,
                      1.15 * np.max(estimates['t'][idx][i]) * np.ones(gt_times.shape),
                      color='blue', marker='.', fillstyle='none', linestyle='none')
-                #ax2.legend(labels=['t', 't_sub', 't_rec', 'spikes', 'gt_spikes'])
-                ax2.legend(labels=['t']);
+                ax2.legend(labels=['t', 't_sub', 't_rec', 'spikes', 'gt_spikes'])
             else:
-                #ax2.legend(labels=['t', 't_sub', 't_rec', 'spikes'])
-                ax2.legend(labels=['t']);
-
+                ax2.legend(labels=['t', 't_sub', 't_rec', 'spikes'])
             ax2.set_title(f'Signal and spike times {i+1}')
             ax2.text(0.1, 0.1, f'snr:{round(estimates["snr"][idx][i],2)}', horizontalalignment='center', verticalalignment='center', transform = ax2.transAxes)
             ax2.text(0.1, 0.07, f'num_spikes: {len(estimates["spikes"][idx[i]])}', horizontalalignment='center', verticalalignment='center', transform = ax2.transAxes)            
